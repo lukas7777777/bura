@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.davidtakac.bura.R
 import com.davidtakac.bura.common.TextSkeleton
+import com.davidtakac.bura.graphs.common.CombinedGraph
 import com.davidtakac.bura.graphs.common.GraphArgs
 import com.davidtakac.bura.graphs.common.GraphScreenSectionLabel
 import com.davidtakac.bura.graphs.pop.PopGraph
@@ -82,11 +83,16 @@ fun EssentialGraphPage(
             )
         }
         item {
-            TemperatureGraph(
-                state = temperatureGraph,
+            CombinedGraph(
+                stateTemp = temperatureGraph,
                 absMinTemp = minTemp,
                 absMaxTemp = maxTemp,
-                args = temperatureArgs,
+                argsTemp = temperatureArgs,
+                statePop = popGraph,
+                argsPop = popArgs,
+                statePrecip = precipGraph,
+                maxPrecip = precipMax,
+                argsPrecip = precipArgs,
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(graphAspectRatio)
@@ -97,43 +103,6 @@ fun EssentialGraphPage(
                     )
                     .clip(MaterialTheme.shapes.large)
             )
-        }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(graphLabelSpacing)) {
-                GraphScreenSectionLabel(stringResource(R.string.cond_screen_pop))
-                PopGraph(
-                    state = popGraph,
-                    args = popArgs,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(graphAspectRatio)
-                        .border(
-                            width = Dp.Hairline,
-                            shape = MaterialTheme.shapes.large,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        .clip(MaterialTheme.shapes.large)
-                )
-            }
-        }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(graphLabelSpacing)) {
-                GraphScreenSectionLabel(stringResource(R.string.cond_screen_precip))
-                PrecipitationGraph(
-                    state = precipGraph,
-                    max = precipMax,
-                    args = precipArgs,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(graphAspectRatio)
-                        .border(
-                            width = Dp.Hairline,
-                            shape = MaterialTheme.shapes.large,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        .clip(MaterialTheme.shapes.large)
-                )
-            }
         }
         item {
             when (precipitationTotal) {

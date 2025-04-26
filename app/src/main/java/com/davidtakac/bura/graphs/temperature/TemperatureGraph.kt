@@ -52,7 +52,6 @@ import com.davidtakac.bura.graphs.common.drawLabeledPoint
 import com.davidtakac.bura.graphs.common.drawPastOverlayWithPoint
 import com.davidtakac.bura.graphs.common.drawPlotLinePath
 import com.davidtakac.bura.graphs.common.drawTimeAxis
-import com.davidtakac.bura.graphs.common.drawVerticalAxis
 import com.davidtakac.bura.temperature.Temperature
 import com.davidtakac.bura.temperature.string
 import java.time.LocalDate
@@ -77,14 +76,6 @@ fun TemperatureGraph(
     val measurer = rememberTextMeasurer()
     val plotColors = AppTheme.colors.temperatureColors(minCelsius, maxCelsius)
     Canvas(modifier) {
-        drawTempAxis(
-            unit = absMinTemp.unit,
-            minTempC = minCelsius,
-            maxTempC = maxCelsius,
-            context = context,
-            measurer = measurer,
-            args = args
-        )
         drawHorizontalAxisAndPlot(
             state = state,
             minCelsius = minCelsius,
@@ -198,28 +189,6 @@ private fun DrawScope.drawHorizontalAxisAndPlot(
     }
     nowCenter?.let {
         drawPastOverlayWithPoint(it, args)
-    }
-}
-
-private fun DrawScope.drawTempAxis(
-    unit: Temperature.Unit,
-    maxTempC: Double,
-    minTempC: Double,
-    context: Context,
-    measurer: TextMeasurer,
-    args: GraphArgs
-) {
-    val rangeC = maxTempC - minTempC
-    val steps = 7
-    drawVerticalAxis(
-        steps = steps,
-        args = args,
-        measurer = measurer,
-    ) { step ->
-        Temperature
-            .fromDegreesCelsius(value = (rangeC * step / steps.toDouble()) + minTempC)
-            .convertTo(unit)
-            .string(context, args.numberFormat)
     }
 }
 
