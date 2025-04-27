@@ -46,6 +46,7 @@ import com.davidtakac.bura.common.AppTheme
 import com.davidtakac.bura.condition.Condition
 import com.davidtakac.bura.condition.image
 import com.davidtakac.bura.graphs.common.GraphArgs
+import com.davidtakac.bura.graphs.common.TimeMode
 import com.davidtakac.bura.graphs.common.GraphTime
 import com.davidtakac.bura.graphs.common.closePlotFillPath
 import com.davidtakac.bura.graphs.common.drawLabeledPoint
@@ -65,6 +66,8 @@ fun TemperatureGraph(
     args: GraphArgs,
     absMinTemp: Temperature,
     absMaxTemp: Temperature,
+    minTimestamp: Long? = null,
+    maxTimestamp: Long? = null,
     modifier: Modifier = Modifier
 ) {
     val absMinTempC = absMinTemp.convertTo(Temperature.Unit.DegreesCelsius).value
@@ -83,7 +86,9 @@ fun TemperatureGraph(
             context = context,
             measurer = measurer,
             plotColors = plotColors,
-            args = args
+            args = args,
+            minTimestamp = minTimestamp,
+            maxTimestamp = maxTimestamp
         )
     }
 }
@@ -95,7 +100,9 @@ private fun DrawScope.drawHorizontalAxisAndPlot(
     maxCelsius: Double,
     context: Context,
     measurer: TextMeasurer,
-    args: GraphArgs
+    args: GraphArgs,
+    minTimestamp: Long? = null,
+    maxTimestamp: Long? = null,
 ) {
     val iconSize = 24.dp.toPx()
     val iconSizeRound = iconSize.roundToInt()
@@ -115,15 +122,11 @@ private fun DrawScope.drawHorizontalAxisAndPlot(
     var nowCenter: Offset? = null
     var lastX = 0f
 
-    val steps = 6
-    val minTimestamp = state.points.minOf { it.time.value.toSecondOfDay().toLong() }
-    val maxTimestamp = state.points.maxOf { it.time.value.toSecondOfDay().toLong() }
+    // Use 24-hour axis with labels at 6-hour intervals, locale-aware
     drawTimeAxis(
         measurer = measurer,
         args = args,
-        steps = steps,
-        minTimestamp = minTimestamp,
-        maxTimestamp = maxTimestamp
+        hourFormatter = { hour -> args.axisTimeFormatter.format(java.time.LocalTime.of(hour, 0)) },
     ) { i, x, calcY, label ->
         // Temperature line
         val point = state.points.getOrNull(i) ?: return@drawTimeAxis

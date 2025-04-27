@@ -23,10 +23,23 @@ fun CombinedGraph(
     argsPrecip: GraphArgs,
     modifier: Modifier = Modifier
 ) {
+    // Compute global min/max seconds-of-day from all three graphs
+    val minTimestamp = listOfNotNull(
+        stateTemp.points.minOfOrNull { it.time.value.toSecondOfDay() },
+        statePop.points.minOfOrNull { it.time.value.toSecondOfDay() },
+        statePrecip.points.minOfOrNull { it.time.value.toSecondOfDay() }
+    ).minOrNull()?.toLong() ?: 0L
+    val maxTimestamp = listOfNotNull(
+        stateTemp.points.maxOfOrNull { it.time.value.toSecondOfDay() },
+        statePop.points.maxOfOrNull { it.time.value.toSecondOfDay() },
+        statePrecip.points.maxOfOrNull { it.time.value.toSecondOfDay() }
+    ).maxOrNull()?.toLong() ?: 86399L
     Box(modifier) {
         PopGraph(
             state = statePop,
             args = argsPop,
+            minTimestamp = minTimestamp,
+            maxTimestamp = maxTimestamp,
             modifier = Modifier.fillMaxSize()
         )
         TemperatureGraph(
@@ -34,12 +47,16 @@ fun CombinedGraph(
             absMinTemp = absMinTemp,
             absMaxTemp = absMaxTemp,
             args = argsTemp,
+            minTimestamp = minTimestamp,
+            maxTimestamp = maxTimestamp,
             modifier = Modifier.fillMaxSize()
         )
         PrecipitationGraph(
             state = statePrecip,
             max = maxPrecip,
             args = argsPrecip,
+            minTimestamp = minTimestamp,
+            maxTimestamp = maxTimestamp,
             modifier = Modifier.fillMaxSize()
         )
     }

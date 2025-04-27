@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.davidtakac.bura.common.AppTheme
 import com.davidtakac.bura.graphs.common.GraphArgs
+import com.davidtakac.bura.graphs.common.TimeMode
 import com.davidtakac.bura.graphs.common.GraphTime
 import com.davidtakac.bura.graphs.common.closePlotFillPath
 import com.davidtakac.bura.graphs.common.drawLabeledPoint
@@ -49,7 +50,13 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 @Composable
-fun PopGraph(state: PopGraph, args: GraphArgs, modifier: Modifier = Modifier) {
+fun PopGraph(
+    state: PopGraph,
+    args: GraphArgs,
+    minTimestamp: Long? = null,
+    maxTimestamp: Long? = null,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     val measurer = rememberTextMeasurer()
     val plotColor = AppTheme.colors.popColor
@@ -60,6 +67,8 @@ fun PopGraph(state: PopGraph, args: GraphArgs, modifier: Modifier = Modifier) {
             measurer = measurer,
             plotColor = plotColor,
             args = args,
+            minTimestamp = minTimestamp,
+            maxTimestamp = maxTimestamp,
         )
     }
 }
@@ -70,6 +79,8 @@ private fun DrawScope.drawHorizontalAxisAndPlot(
     measurer: TextMeasurer,
     plotColor: Color,
     args: GraphArgs,
+    minTimestamp: Long? = null,
+    maxTimestamp: Long? = null,
 ) {
     val range = 100f
     val plotPath = Path()
@@ -83,15 +94,11 @@ private fun DrawScope.drawHorizontalAxisAndPlot(
     var maxCenter: Pair<Offset, Pop>? = null
     var lastX = 0f
 
-    val steps = 6
-    val minTimestamp = state.points.minOf { it.time.value.toSecondOfDay().toLong() }
-    val maxTimestamp = state.points.maxOf { it.time.value.toSecondOfDay().toLong() }
+    // Use 24-hour axis with labels at 6-hour intervals, locale-aware
     drawTimeAxis(
         measurer = measurer,
         args = args,
-        steps = steps,
-        minTimestamp = minTimestamp,
-        maxTimestamp = maxTimestamp
+        hourFormatter = { hour -> args.axisTimeFormatter.format(java.time.LocalTime.of(hour, 0)) },
     ) { i, x, calcY, label ->
         // Plot line
         val point = state.points.getOrNull(i) ?: return@drawTimeAxis
