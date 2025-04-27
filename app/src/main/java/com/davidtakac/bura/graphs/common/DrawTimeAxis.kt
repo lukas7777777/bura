@@ -18,19 +18,27 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.LayoutDirection
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.time.LocalTime
 
 fun DrawScope.drawTimeAxis(
     measurer: TextMeasurer,
     args: GraphArgs,
+    steps: Int,
+    minTimestamp: Long,
+    maxTimestamp: Long,
     onStepDrawn: (
         i: Int,
         x: Float,
         calculateY: (percent: Double) -> YData,
+        label: String
     ) -> Unit
 ) {
-    for (i in 0..24) {
-        val xPercent = if (layoutDirection == LayoutDirection.Ltr) i / 24f else 1 - (i / 24f)
+    val zoneId = java.time.ZoneId.of("Europe/Berlin")
+    for (i in 0..steps) {
+        val xPercent = if (layoutDirection == LayoutDirection.Ltr) i / steps.toFloat() else 1 - (i / steps.toFloat())
         val xOffset = if (layoutDirection == LayoutDirection.Ltr) args.startGutter else args.endGutter - args.startGutter
         val plotWidth = size.width - args.endGutter - args.startGutter
         val x = xPercent * plotWidth + xOffset
@@ -43,39 +51,35 @@ fun DrawScope.drawTimeAxis(
                 pathEffect = if (!onEdge) PathEffect.dashPathEffect(args.axisDashIntervals.toFloatArray()) else null
             )
         }
-        if (i % 6 == 0) {
-            val time = LocalTime.of(if (i == 24) 0 else i, 0)
-            val label = measurer.measure(
-                args.axisTimeFormatter.format(time),
-                style = args.axisTextStyle
+        // Compute the timestamp for this tick
+        val tickTs = minTimestamp + ((maxTimestamp - minTimestamp) * (i / steps.toFloat())).toLong()
+        val label = DateTimeFormatter.ofPattern("HH:mm").format(
+            java.time.Instant.ofEpochMilli(tickTs).atZone(zoneId).toLocalTime()
+        )
+        // Draw helper line and label for every tick
+        drawTimeHelperLine(onEdge = i == 0 || i == steps)
+        val measuredLabel = measurer.measure(label, style = args.axisTextStyle)
+        val textTopLeftX =
+            if (layoutDirection == LayoutDirection.Ltr) x + args.bottomAxisTextPaddingHorizontal
+            else x - measuredLabel.size.width - args.bottomAxisTextPaddingHorizontal
+        val textTopLeftXMin =
+            if (layoutDirection == LayoutDirection.Ltr) args.startGutter + args.bottomAxisTextPaddingHorizontal
+            else args.endGutter + args.bottomAxisTextPaddingHorizontal
+        val textTopLeftXMax =
+            if (layoutDirection == LayoutDirection.Ltr) size.width - args.endGutter - measuredLabel.size.width - args.bottomAxisTextPaddingHorizontal
+            else size.width - args.startGutter - measuredLabel.size.width - args.bottomAxisTextPaddingHorizontal
+        drawText(
+            textLayoutResult = measuredLabel,
+            color = args.axisColor,
+            topLeft = Offset(
+                x = textTopLeftX.coerceIn(
+                    minimumValue = textTopLeftXMin,
+                    maximumValue = textTopLeftXMax
+                ),
+                y = size.height - args.bottomGutter + args.bottomAxisTextPaddingTop
             )
-            drawTimeHelperLine(onEdge = i == 0 || i == 24)
-            if (i != 24) {
-                val textTopLeftX =
-                    if (layoutDirection == LayoutDirection.Ltr) x + args.bottomAxisTextPaddingHorizontal
-                    else x - label.size.width - args.bottomAxisTextPaddingHorizontal
-                val textTopLeftXMin =
-                    if (layoutDirection == LayoutDirection.Ltr) args.startGutter + args.bottomAxisTextPaddingHorizontal
-                    else args.endGutter + args.bottomAxisTextPaddingHorizontal
-                val textTopLeftXMax =
-                    if (layoutDirection == LayoutDirection.Ltr) size.width - args.endGutter - label.size.width - args.bottomAxisTextPaddingHorizontal
-                    else size.width - args.startGutter - label.size.width - args.bottomAxisTextPaddingHorizontal
-                drawText(
-                    textLayoutResult = label,
-                    color = args.axisColor,
-                    topLeft = Offset(
-                        x = textTopLeftX.coerceIn(
-                            minimumValue = textTopLeftXMin,
-                            maximumValue = textTopLeftXMax
-                        ),
-                        y = size.height - args.bottomGutter + args.bottomAxisTextPaddingTop
-                    )
-                )
-            }
-        }
-        onStepDrawn(i, x,) { percent ->
-            // Flip is necessary because Canvas coordinate system is top to bottom, while real
-            // world graphs are bottom to top
+        )
+        onStepDrawn(i, x, { percent ->
             val percentFromBottom = 1 - percent
             val plotHeight = size.height - args.topGutter - args.bottomGutter
             val yOffset = args.topGutter
@@ -83,7 +87,7 @@ fun DrawScope.drawTimeAxis(
                 top = ((percentFromBottom * plotHeight) + yOffset).toFloat(),
                 bot = size.height - args.bottomGutter
             )
-        }
+        }, label)
     }
 }
 

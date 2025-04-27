@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 
 class PlacePickerViewModel(
-    private val selectedPlaceRepo: SelectedPlaceRepository,
+    private val selectedPlaceRepository: SelectedPlaceRepository,
     private val selectPlace: SelectPlace,
     private val getSavedPlaces: GetSavedPlaces,
     private val searchPlaces: SearchPlaces,
@@ -48,7 +48,7 @@ class PlacePickerViewModel(
     fun getSelectedPlace() {
         viewModelScope.launch {
             _state.value = _state.value.copy(loading = true)
-            val place = selectedPlaceRepo.getSelectedPlace()
+            val place = selectedPlaceRepository.getSelectedPlace()
             _state.value = _state.value.copy(
                 loading = false,
                 selectedPlace = place
@@ -95,7 +95,7 @@ class PlacePickerViewModel(
             _state.value = _state.value.copy(
                 loading = false,
                 results = PlacePickerResults.SavedPlaces(getSavedPlaces.invoke(Instant.now())),
-                selectedPlace = selectedPlaceRepo.getSelectedPlace()
+                selectedPlace = selectedPlaceRepository.getSelectedPlace()
             )
         }
     }
@@ -106,7 +106,7 @@ class PlacePickerViewModel(
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
                 val container = (checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]) as App).container
                 return PlacePickerViewModel(
-                    container.selectedPlaceRepo,
+                    container.selectedPlaceRepository,
                     container.selectPlace,
                     container.getSavedPlaces,
                     container.searchPlaces,

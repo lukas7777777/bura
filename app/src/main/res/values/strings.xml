@@ -94,14 +94,16 @@
     <string name="precip_value_showers_on_day">Next expected is %1$s showers on %2$s.</string>
     <string name="precip_value_rain_on_day">Next expected is %1$s rain on %2$s.</string>
     <string name="precip_value_snow_on_day">Next expected is %1$s snow on %2$s.</string>
-    <string name="precip_value_mixed_on_day">Next expected is %1$s on %2$s.</string>
-    <string name="precip_value_none_in_next_days">None expected in next %sd.</string>
+    <string name="precip_value_mixed_on_day">Next expected is %1$s on %2$s.</string>    <string name="precip_value_none_in_next_days">None expected in next %sd.</string>
     <string name="precip_unit_mm">mm</string>
     <string name="precip_value_mm">%s mm</string>
     <string name="precip_unit_cm">cm</string>
     <string name="precip_value_cm">%s cm</string>
     <string name="precip_unit_in">″</string>
     <string name="precip_value_in">%s″</string>
+    
+    <!-- Nowcast (precipitation radar) strings -->
+    <string name="nowcast_title">Precipitation Radar</string>
 
     <string name="pop_value_percent">%s%%</string>
 

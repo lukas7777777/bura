@@ -14,18 +14,26 @@ package com.davidtakac.bura.summary
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -34,6 +42,7 @@ import com.davidtakac.bura.common.FailedToDownloadErrorScreen
 import com.davidtakac.bura.common.NoSelectedPlaceErrorScreen
 import com.davidtakac.bura.common.OutdatedErrorScreen
 import com.davidtakac.bura.common.animateShimmerColorAsState
+import com.davidtakac.bura.graphs.nowcast.NowcastGraph
 import com.davidtakac.bura.place.Place
 import com.davidtakac.bura.place.picker.PlacePickerSearchBar
 import com.davidtakac.bura.place.picker.PlacePickerState
@@ -56,6 +65,7 @@ import java.time.LocalDate
 @Composable
 fun SummaryScreen(
     summaryState: SummaryState,
+    nowcastState: NowcastUiState, // Added nowcast state parameter
     onHourlySectionClick: () -> Unit,
     onDayClick: (date: LocalDate) -> Unit,
     onSettingsButtonClick: () -> Unit,
@@ -88,8 +98,7 @@ fun SummaryScreen(
                 onActiveChange = onSearchActiveChange,
                 onSettingsClick = onSettingsButtonClick
             )
-        }
-    ) { contentPadding ->
+        }    ) { contentPadding ->
         Crossfade(
             targetState = summaryState,
             modifier = Modifier
@@ -101,6 +110,7 @@ fun SummaryScreen(
             when (it) {
                 is SummaryState.Success -> SummaryGrid(
                     state = it,
+                    nowcastState = nowcastState, // Pass nowcast state to SummaryGrid
                     onHourlyClick = onHourlySectionClick,
                     onDayClick = onDayClick,
                     onPrecipitationClick = onPrecipitationClick,
@@ -133,6 +143,7 @@ fun SummaryScreen(
 @Composable
 private fun SummaryGrid(
     state: SummaryState.Success,
+    nowcastState: NowcastUiState, // Add nowcast state parameter
     onHourlyClick: () -> Unit,
     onDayClick: (date: LocalDate) -> Unit,
     onPrecipitationClick: () -> Unit,
@@ -147,26 +158,80 @@ private fun SummaryGrid(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         columns = StaggeredGridCells.Fixed(2)
     ) {
-        item(span = StaggeredGridItemSpan.Companion.FullLine) {}
-        item(span = StaggeredGridItemSpan.Companion.FullLine) {
+        item(span = StaggeredGridItemSpan.FullLine) {}
+        item(span = StaggeredGridItemSpan.FullLine) {
             NowSummary(
                 state = state.now,
                 modifier = Modifier.fillMaxWidth()
             )
         }
-        item(span = StaggeredGridItemSpan.Companion.FullLine) {
+        item(span = StaggeredGridItemSpan.FullLine) {
             HourSummaryLazyRow(
                 state = state.hourly,
                 onClick = onHourlyClick,
                 modifier = Modifier.fillMaxWidth()
             )
         }
-        item(span = StaggeredGridItemSpan.Companion.FullLine) {
+        item(span = StaggeredGridItemSpan.FullLine) {
             DailySummaryColumn(
                 state = state.daily,
                 onDayClick = onDayClick,
                 modifier = Modifier.fillMaxWidth()
             )
+        }
+        
+        // Add Nowcast Graph - This will show precipitation radar data
+        item(span = StaggeredGridItemSpan.FullLine) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.nowcast_title), // You'll need to add this string resource
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.align(Alignment.TopStart)
+                    )
+                    
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 40.dp), // Space for the title
+                        contentAlignment = Alignment.Center
+                    ) {
+
+                        when(nowcastState) {
+                            is NowcastUiState.Loading -> {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.align(Alignment.Center),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            is NowcastUiState.Success -> {
+                                NowcastGraph(
+                                    nowcastData = nowcastState.data,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                )
+                            }
+                            is NowcastUiState.Error -> {
+                                Text(
+                                    text = nowcastState.message,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
         item {
             PrecipitationSummary(
@@ -217,14 +282,14 @@ private fun SummaryGrid(
                 modifier = Modifier.fillMaxWidth()
             )
         }
-        item(span = StaggeredGridItemSpan.Companion.FullLine) {
+        item(span = StaggeredGridItemSpan.FullLine) {
             Text(
                 text = stringResource(id = R.string.credit_weather),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        item(span = StaggeredGridItemSpan.Companion.FullLine) {}
+        item(span = StaggeredGridItemSpan.FullLine) {}
     }
 }
 

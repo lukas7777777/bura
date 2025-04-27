@@ -100,7 +100,7 @@ class SelectedUnitsViewModel(private val repo: SelectedUnitsRepository) : ViewMo
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
                 val container = (checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]) as App).container
-                return SelectedUnitsViewModel(container.selectedUnitsRepo) as T
+                return SelectedUnitsViewModel(container.selectedUnitsRepository) as T
             }
         }
     }

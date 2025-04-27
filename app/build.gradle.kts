@@ -14,6 +14,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    // Apply Kotlin serialization plugin with version
+    // REPLACE "YOUR_KOTLIN_VERSION" with the actual Kotlin version used in your project
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.0"
 }
 
 android {
@@ -92,4 +95,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+
+    // Add kotlinx-serialization-json dependency
+    // Replace YOUR_SERIALIZATION_VERSION with the latest version (e.g., "1.6.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
 }

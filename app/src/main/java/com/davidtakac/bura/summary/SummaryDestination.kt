@@ -71,6 +71,7 @@ fun SummaryDestination(
 
     SummaryScreen(
         summaryState = summaryVM.state.collectAsState().value,
+        nowcastState = summaryVM.nowcastDataState.collectAsState().value,
         onHourlySectionClick = onHourlySectionClick,
         onDayClick = onDayClick,
         onSettingsButtonClick = onSettingsButtonClick,

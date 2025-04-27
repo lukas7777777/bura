@@ -19,6 +19,10 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import com.davidtakac.bura.App
 import com.davidtakac.bura.forecast.ForecastRepository
 import com.davidtakac.bura.forecast.ForecastResult
+import com.davidtakac.bura.nowcast.data.NowcastRepository
+import com.davidtakac.bura.nowcast.data.NowcastResult
+import com.davidtakac.bura.nowcast.data.remote.NowcastResponse
+import com.davidtakac.bura.place.Location
 import com.davidtakac.bura.place.selected.SelectedPlaceRepository
 import com.davidtakac.bura.summary.daily.DailySummary
 import com.davidtakac.bura.summary.daily.getDailySummary
@@ -51,17 +55,33 @@ import java.time.Instant
 class SummaryViewModel(
     private val placeRepo: SelectedPlaceRepository,
     private val unitsRepo: SelectedUnitsRepository,
-    private val forecastRepo: ForecastRepository
+    private val forecastRepo: ForecastRepository,
+    private val nowcastRepository: NowcastRepository
 ) : ViewModel() {
     private val _state = MutableStateFlow<SummaryState>(SummaryState.Loading)
     val state = _state.asStateFlow()
+      // StateFlow for nowcast data
+    private val _nowcastDataState = MutableStateFlow<NowcastUiState>(NowcastUiState.Loading)
+    val nowcastDataState = _nowcastDataState.asStateFlow()
+    
+    init {
+        // Fetch data when the ViewModel is created
+        getSummary()
+    }
 
     fun getSummary() {
         viewModelScope.launch {
             if (_state.value !is SummaryState.Success) {
                 _state.value = SummaryState.Loading
             }
-            _state.value = getState()
+            val location = placeRepo.getSelectedPlace()?.location
+            if (location != null) {
+                _state.value = getState()
+                fetchNowcastData(location)
+            } else {
+                _state.value = SummaryState.NoSelectedPlace
+                _nowcastDataState.value = NowcastUiState.Error("No place selected")
+            }
         }
     }
     
@@ -147,7 +167,8 @@ class SummaryViewModel(
             ForecastResult.FailedToDownload -> return SummaryState.FailedToDownload
             ForecastResult.Outdated -> return SummaryState.Outdated
             is ForecastResult.Success -> Unit
-        }
+        }        // Include nowcast data from the nowcast state if available
+        val currentNowcastData = (_nowcastDataState.value as? NowcastUiState.Success)?.data
 
         return SummaryState.Success(
             now = nowSummary.data,
@@ -160,8 +181,34 @@ class SummaryViewModel(
             humidity = humiditySummary.data,
             vis = visSummary.data,
             sun = sunSummary.data,
-            feelsLike = feelsLikeSummary.data
+            feelsLike = feelsLikeSummary.data,
+            // Add the nowcast data from the separate state flow
+            // Note: A more robust state merging strategy might be needed for production
+            nowcastData = currentNowcastData
         )
+    }    private fun fetchNowcastData(location: Location) {
+        viewModelScope.launch {
+            _nowcastDataState.value = NowcastUiState.Loading // Set loading state for nowcast
+            when (val result = nowcastRepository.getNowcastData(location.coordinates.latitude, location.coordinates.longitude)) {
+                is NowcastResult.Success -> {
+                    // Update the nowcast specific state with the fetched data
+                    _nowcastDataState.value = NowcastUiState.Success(result.data)
+                    
+                    // Update the main state if it's currently in a Success state
+                    val currentState = _state.value
+                    if (currentState is SummaryState.Success) {
+                        // Create a new Success state by copying the existing one and adding the nowcast data
+                        _state.value = currentState.copy(nowcastData = result.data)
+                    }
+                    // Note: If the main state isn't a Success state, we don't update it
+                    // The nowcast data will be included when the main state transitions to Success
+                }
+                is NowcastResult.Error -> {
+                    _nowcastDataState.value = NowcastUiState.Error(result.message)
+                    // We don't update the main state on error, keeping the nowcast part optional
+                }
+            }
+        }
     }
 
     companion object {
@@ -170,9 +217,10 @@ class SummaryViewModel(
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
                 val container = (checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]) as App).container
                 return SummaryViewModel(
-                    container.selectedPlaceRepo,
-                    container.selectedUnitsRepo,
-                    container.forecastRepo
+                    container.selectedPlaceRepository,
+                    container.selectedUnitsRepository,
+                    container.forecastRepository,
+                    container.nowcastRepository
                 ) as T
             }
         }
@@ -180,6 +228,9 @@ class SummaryViewModel(
 }
 
 sealed interface SummaryState {
+    /**
+     * Represents the successful state with all weather summary data loaded.
+     */
     data class Success(
         val now: NowSummary,
         val hourly: List<HourSummary>,
@@ -191,11 +242,37 @@ sealed interface SummaryState {
         val humidity: HumiditySummary,
         val vis: VisibilitySummary,
         val sun: SunSummary,
-        val feelsLike: FeelsLikeSummary
+        val feelsLike: FeelsLikeSummary,
+        // --- NEW: Add nowcast data ---
+        val nowcastData: NowcastResponse? = null // Field to hold the nowcast data
     ) : SummaryState
 
+    /**
+     * Represents the loading state while data is being fetched.
+     */
     data object Loading : SummaryState
+
+    /**
+     * Represents a state where data failed to download.
+     */
     data object FailedToDownload : SummaryState
+
+    /**
+     * Represents a state where the data is outdated and needs refreshing.
+     */
     data object Outdated : SummaryState
+
+    /**
+     * Represents a state where no place has been selected by the user.
+     */
     data object NoSelectedPlace : SummaryState
+}
+
+/**
+ * Sealed class to represent the UI state specifically for Nowcast data
+ */
+sealed class NowcastUiState {
+    data object Loading : NowcastUiState()
+    data class Success(val data: NowcastResponse) : NowcastUiState()
+    data class Error(val message: String) : NowcastUiState()
 }

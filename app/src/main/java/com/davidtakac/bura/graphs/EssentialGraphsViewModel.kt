@@ -110,9 +110,9 @@ class EssentialGraphsViewModel(
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
                 val container = (checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]) as App).container
                 return EssentialGraphsViewModel(
-                    container.selectedPlaceRepo,
-                    container.selectedUnitsRepo,
-                    container.forecastRepo,
+                    container.selectedPlaceRepository,
+                    container.selectedUnitsRepository,
+                    container.forecastRepository,
                 ) as T
             }
         }

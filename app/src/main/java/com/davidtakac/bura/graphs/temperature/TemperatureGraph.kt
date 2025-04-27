@@ -115,10 +115,16 @@ private fun DrawScope.drawHorizontalAxisAndPlot(
     var nowCenter: Offset? = null
     var lastX = 0f
 
+    val steps = 6
+    val minTimestamp = state.points.minOf { it.time.value.toSecondOfDay().toLong() }
+    val maxTimestamp = state.points.maxOf { it.time.value.toSecondOfDay().toLong() }
     drawTimeAxis(
         measurer = measurer,
-        args = args
-    ) { i, x, calcY ->
+        args = args,
+        steps = steps,
+        minTimestamp = minTimestamp,
+        maxTimestamp = maxTimestamp
+    ) { i, x, calcY, label ->
         // Temperature line
         val point = state.points.getOrNull(i) ?: return@drawTimeAxis
         val temp = point.temperature

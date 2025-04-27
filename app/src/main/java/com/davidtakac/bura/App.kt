@@ -19,6 +19,6 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        container = AppContainer(applicationContext)
+        container = DefaultAppContainer(applicationContext)
     }
 }
